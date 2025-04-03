@@ -70,7 +70,6 @@ public class SecurityConfig {
                 .build();
     }
 
-
     @Bean
     public UserDetailsService userDetailsService() {
         return new InMemoryUserDetailsManager(
@@ -103,15 +102,14 @@ public class SecurityConfig {
                 .build();
 
         PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(SSLConnectionSocketFactoryBuilder.create()
+                .setSSLSocketFactory(SSLConnectionSocketFactoryBuilder
+                        .create()
                         .setSslContext(sslContext)
                         .setTlsVersions(TLS.V_1_3)
                         .build())
-
                 .setDefaultSocketConfig(SocketConfig.custom()
                         .setSoTimeout(Timeout.ofMinutes(1))
                         .build())
-
                 .setPoolConcurrencyPolicy(PoolConcurrencyPolicy.STRICT)
                 .setConnPoolPolicy(PoolReusePolicy.LIFO)
                 .setDefaultConnectionConfig(ConnectionConfig.custom()
@@ -120,13 +118,14 @@ public class SecurityConfig {
                         .setTimeToLive(TimeValue.ofMinutes(10))
                         .build())
                 .build();
+
         HttpClient httpClient = HttpClientBuilder
                 .create()
                 .setConnectionManager(connectionManager)
                 .build();
 
-        HttpComponentsClientHttpRequestFactory factory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
         return new RestTemplate(factory);
     }
 }

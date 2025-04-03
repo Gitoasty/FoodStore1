@@ -1,7 +1,6 @@
 package hr.java.spring.foodstore.foodstore.repository;
 
 import hr.java.spring.foodstore.foodstore.model.FoodItem;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;

@@ -15,8 +15,7 @@ public class TestService {
         String url = "https://localhost:8443/api/all"; // Change to your endpoint
         try {
             // You can use a GET request or POST request depending on the endpoint
-            String response = restTemplate.getForObject(url, String.class);
-            return response;
+            return restTemplate.getForObject(url, String.class);
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

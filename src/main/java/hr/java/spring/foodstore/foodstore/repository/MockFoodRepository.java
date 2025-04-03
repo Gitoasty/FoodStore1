@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,13 +18,14 @@ public class MockFoodRepository implements FoodRepository {
     static {
         FoodItem firstFoodItem = new FoodItem(1, "Apple", FoodCategory.FRUIT, 100,
                 new BigDecimal(1),
-                new BigDecimal(0.5));
+                BigDecimal.valueOf(0.5));
         FoodItem secondFoodItem = new FoodItem(2, "Burger", FoodCategory.MEAT, 1000,
-                new BigDecimal(1.1),
-                new BigDecimal(0.55));
+                BigDecimal.valueOf(1.1),
+                BigDecimal.valueOf(0.55));
         foodItems.add(firstFoodItem);
         foodItems.add(secondFoodItem);
     }
+
     @Override
     public List<FoodItem> findAll() {
         return foodItems;
@@ -39,7 +41,7 @@ public class MockFoodRepository implements FoodRepository {
     @Override
     public Optional<FoodItem> findWithMinKcal() {
         return findAll().stream()
-                .min((fi1, fi2) -> fi1.getKcal().compareTo(fi2.getKcal()));
+                .min(Comparator.comparing(FoodItem::getKcal));
     }
 
     @Override
@@ -48,7 +50,7 @@ public class MockFoodRepository implements FoodRepository {
         Optional<FoodItem> existingFoodItem = foodItems.stream()
                 .filter(fi -> fi.getId().equals(foodItem.getId())).findFirst();
 
-        if(!existingFoodItem.isEmpty()) {
+        if(existingFoodItem.isPresent()) {
             FoodItem updatedFoodItem = existingFoodItem.get();
             updatedFoodItem.setName(foodItem.getName());
             updatedFoodItem.setKcal(foodItem.getKcal());
@@ -57,30 +59,32 @@ public class MockFoodRepository implements FoodRepository {
             foodItems.remove(existingFoodItem.get());
             foodItems.add(updatedFoodItem);
 
-            return Optional.of(updatedFoodItem);
-        }
-        else {
-            FoodItem foodItemToUpdate = new FoodItem();
-            foodItemToUpdate.setId(foodItem.getId());
-            foodItemToUpdate.setName(foodItem.getName());
-            foodItemToUpdate.setFoodCategory(foodItem.getFoodCategory());
-            foodItemToUpdate.setKcal(foodItem.getKcal());
-            foodItemToUpdate.setSellingPrice(foodItem.getSellingPrice());
-            foodItems.add(foodItemToUpdate);
+            foodItems.sort(Comparator.comparing(FoodItem::getId));
 
-            return Optional.of(foodItemToUpdate);
+            return Optional.of(updatedFoodItem);
+        } else {
+            FoodItem newFoodItem = new FoodItem();
+            newFoodItem.setId(foodItem.getId());
+            newFoodItem.setName(foodItem.getName());
+            newFoodItem.setFoodCategory(foodItem.getFoodCategory());
+            newFoodItem.setKcal(foodItem.getKcal());
+            newFoodItem.setSellingPrice(foodItem.getSellingPrice());
+            foodItems.add(newFoodItem);
+
+            foodItems.sort(Comparator.comparing(FoodItem::getId));
+
+            return Optional.of(newFoodItem);
         }
     }
 
     @Override
     public void deleteFoodItem(Integer id) {
-        foodItems = foodItems.stream()
-                        .filter(f1 -> !f1.getId().equals(id)).toList();
+        foodItems.removeIf(f1 -> f1.getId().equals(id));
     }
 
     private Integer generateNewFoodItemId() {
         Optional<FoodItem> lastPrimaryKeyValueOptional = foodItems.stream()
-                .max((fi1, fi2) -> fi1.getId().compareTo(fi2.getId()));
+                .max(Comparator.comparing(FoodItem::getId));
 
         if(lastPrimaryKeyValueOptional.isPresent()) {
             FoodItem foodItem = lastPrimaryKeyValueOptional.get();

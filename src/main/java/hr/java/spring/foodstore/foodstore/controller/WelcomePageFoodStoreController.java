@@ -50,10 +50,17 @@ public class WelcomePageFoodStoreController {
             description = "Get a specific food item by providing it's ID")
     @Tag(name = "get", description = "GET methods of food APIs")
     @GetMapping("/foodItem/{name}")
-    public List<FoodItemDTO> getFoodItemsByName(@Parameter(
-            description = "ID of food to be retrieved",
-            required = true)@PathVariable String name) {
-        return foodService.findByName(name);
+    public List<FoodItemDTO> getFoodItemsByName(
+            @Parameter(description = "ID of food to be retrieved",
+                required = true)
+            @PathVariable String name) {
+        if (foodService.findByName(name).isEmpty()) {
+            logger.info("Food with name {} not found", name);
+            return null;
+        } else {
+            logger.info("Food {} found", name);
+            return foodService.findByName(name);
+        }
     }
 
 
@@ -62,7 +69,13 @@ public class WelcomePageFoodStoreController {
             description = "Get a specific food from the database with the lowest number of calories")
     @GetMapping("/foodItem/minKcal")
     public FoodItemDTO getFoodItemWithMinKcal() {
-        return foodService.findWithMinKcal().get();
+        if (foodService.findWithMinKcal().isPresent()) {
+            logger.info("Found food with minKcal");
+            return foodService.findWithMinKcal().get();
+        } else {
+            logger.info("No food");
+            return null;
+        }
     }
 
 
@@ -70,9 +83,18 @@ public class WelcomePageFoodStoreController {
     @Operation(summary = "Post a food item",
             description = "Post a food item by providing the api with name, category, kcal and selling price")
     @PostMapping("/foodItem")
-    public ResponseEntity<FoodItemDTO> saveNewFoodItem(@Valid @RequestBody FoodItemDTO foodItemDTO) {
+    public ResponseEntity<FoodItemDTO> saveNewFoodItem(
+            @Valid @RequestBody FoodItemDTO foodItemDTO)
+    {
         Optional<FoodItemDTO> savedFoodItemDTO = foodService.saveOrUpdate(foodItemDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedFoodItemDTO.get());
+
+        if (savedFoodItemDTO.isPresent()) {
+            logger.info("Saved food with id {}", foodItemDTO.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedFoodItemDTO.get());
+        } else {
+            logger.info("Food with id {} already exists", foodItemDTO.getId());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
 
@@ -80,9 +102,10 @@ public class WelcomePageFoodStoreController {
     @Operation(summary = "Put a food item",
             description = "Update a food item by providing the api with the ID, name, category, kcal and selling price")
     @PutMapping("/foodItem/{id}")
-    public ResponseEntity<FoodItemDTO> updateFoodItem(@Valid @RequestBody FoodItemDTO foodItemDTO,
-                                                      @Parameter(
-                                                              description = "ID of food to be updated")@PathVariable Integer id)
+    public ResponseEntity<FoodItemDTO> updateFoodItem(
+            @Valid @RequestBody FoodItemDTO foodItemDTO,
+            @Parameter(description = "ID of food to be updated")
+            @PathVariable Integer id)
     {
         if(!foodItemDTO.getId().equals(id)) {
             MDC.put("prvi", "a");
@@ -95,13 +118,12 @@ public class WelcomePageFoodStoreController {
 
         if(updatedFoodItemDtoOptional.isEmpty()) {
             MDC.put("prvi", "a");
-            logger.warn("Could not update food Item because food ItemDTO is null");
+            logger.warn("Could not update food Item because foodItemDTO is null");
             MDC.clear();
             return ResponseEntity.noContent().build();
-        }
-        else {
+        } else {
             MDC.put("prvi", "b");
-            logger.info("Update food Item because food ItemDTO is updated");
+            logger.info("FoodItemDTO is updated");
             MDC.clear();
             return ResponseEntity.status(HttpStatus.OK).body(updatedFoodItemDtoOptional.get());
         }
@@ -113,10 +135,10 @@ public class WelcomePageFoodStoreController {
             description = "Delete a food item by providing the api with the ID")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("foodItems/{id}")
-    public void delete(@Parameter(
-            description = "ID of food to be deleted")@PathVariable Integer id){
+    public void delete(
+            @Parameter(description = "ID of food to be deleted")
+            @PathVariable Integer id)
+    {
         foodService.deleteFoodItem(id);
     }
-
-
 }

@@ -1,6 +1,5 @@
 package hr.java.spring.foodstore.foodstore.model;
 
-import hr.java.spring.foodstore.foodstore.dto.FoodItemDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

@@ -20,7 +20,4 @@ public class TestController {
     public List<FoodItemDTO> getFoodTest(){
         return foodService.findAll();
     }
-
-
-
 }
