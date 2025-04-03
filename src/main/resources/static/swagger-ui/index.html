@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Swagger docs</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css">
+</head>
+<body>
+<div id="swagger-ui"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/powershell.min.js"></script>
+
+<script>
+    function generatePowerShellCommand(op) {
+        const method = op.querySelector('.opblock-summary-method')?.innerText || 'GET';
+        const path = op.querySelector('.opblock-summary-path')?.innerText || '';
+        let fullUrl = window.location.origin + path;
+
+        // Handle path parameters
+        const pathVariables = path.match(/{(\w+)}/g);
+        if (pathVariables) {
+            pathVariables.forEach(variable => {
+                const paramName = variable.replace(/[{}]/g, '');
+                const inputElement = op.querySelector(`[data-param-name="${paramName}"] input, [name="${paramName}"] input`);
+                const inputValue = inputElement ? inputElement.value : null;
+                if (inputValue) {
+                    fullUrl = fullUrl.replace(variable, inputValue);
+                }
+            });
+        }
+
+        let psCommand = `Invoke-RestMethod -Uri "${fullUrl}" -Method ${method.toUpperCase()}`;
+
+
+        // Add Headers
+        const headers = [];
+        op.querySelectorAll('.parameters .header')?.forEach(h => {
+            const name = h.querySelector('[data-name]')?.getAttribute('data-name');
+            const value = h.querySelector('input')?.value;
+            if (name && value) headers.push({name, value});
+        });
+
+        if (['POST','PUT','PATCH'].includes(method.toUpperCase())) {
+            if (!headers.some(h => h.name.toLowerCase() === 'content-type')) {
+                headers.push({name: 'Content-Type', value: 'application/json'});
+            }
+        }
+
+        if (headers.length > 0) {
+            psCommand += `\n  -Headers @{` +
+                headers.map(h => `'${h.name}'='${h.value}'`).join('; ') +
+                `}`;
+        }
+
+        // Add Body
+        if (['POST','PUT','PATCH'].includes(method.toUpperCase())) {
+            const bodyTextarea = op.querySelector('.body-param textarea');
+            if (bodyTextarea && bodyTextarea.value) {
+                psCommand += `\n  -Body '${bodyTextarea.value.replace(/'/g, "''")}'`;
+            } else {
+                psCommand += `\n  -Body '{}'`;
+            }
+        }
+
+        // Add Query Parameters
+        const queryParams = [];
+        op.querySelectorAll('.parameters .query')?.forEach(q => {
+            const name = q.querySelector('[data-name]')?.getAttribute('data-name');
+            const value = q.querySelector('input')?.value;
+            if (name && value) queryParams.push({name, value});
+        });
+
+        if (queryParams.length > 0) {
+            psCommand += `\n  -Query @{` +
+                queryParams.map(p => `'${p.name}'='${p.value}'`).join('; ') +
+                `}`;
+        }
+
+        return psCommand;
+    }
+
+    function injectPowerShellSnippets() {
+        document.querySelectorAll('.opblock').forEach(op => {
+            try {
+                // Find the server response section
+                const serverResponse = op.querySelector('.request-url');
+                if (!serverResponse) return;
+
+                const container = serverResponse.closest('div').parentNode;
+
+                // Remove old snippet if exists
+                const oldSnippet = container.querySelector('.powershell-snippet');
+                if (oldSnippet) oldSnippet.remove();
+
+                // Create new snippet
+                const snippetDiv = document.createElement('div');
+                snippetDiv.className = 'powershell-snippet';
+                snippetDiv.innerHTML = `
+                        <h4 class="powershell-title">PowerShell Example:</h4>
+                        <pre class="language-powershell microlight"><code>${generatePowerShellCommand(op)}</code></pre>
+                    `;
+
+                // Insert after server response row
+                container.appendChild(snippetDiv);
+            } catch (e) {
+                console.warn('Failed to inject snippet:', e);
+            }
+        });
+    }
+
+    window.onload = function() {
+        const ui = SwaggerUIBundle({
+            url: "https://localhost:8443/v3/api-docs",
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            plugins: [
+                SwaggerUIBundle.plugins.DownloadUrl
+            ],
+            layout: "StandaloneLayout",
+            // Configure Basic Authentication
+            securityDefinitions: {
+                basicAuth: {
+                    type: "basic",
+                    name: "Authorization",
+                    description: "HTTP Basic Authentication"
+                }
+            },
+            // Enable Basic Auth by default (optional)
+            security: [{
+                basicAuth: []
+            }],
+
+            onComplete: function() {
+                const swaggerUi = document.getElementById('swagger-ui');
+
+                const observer = new MutationObserver(function() {
+                    swaggerUi.querySelectorAll('button.execute').forEach(button => {
+                        if (!button.dataset.listenerAttached) {
+                            button.dataset.listenerAttached = true;
+                            button.addEventListener('click', () => {
+                                setTimeout(() => injectPowerShellSnippets(), 200);
+                            });
+                        }
+                    });
+                });
+
+                observer.observe(swaggerUi, {
+                    childList: true,
+                    subtree: true,
+                });
+            }
+        });
+        window.ui = ui;
+    };
+</script>
+</body>
+</html>

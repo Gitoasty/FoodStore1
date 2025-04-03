@@ -1,0 +1,60 @@
+<configuration>
+
+    <!-- Define a pattern layout for JSON format (Logstash expects JSON logs) -->
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <!-- Logstash host and port (use your Logstash instance details here) -->
+        <destination>10.200.142.5:5000</destination>
+
+        <reconnectionDelay>10000</reconnectionDelay> <!-- 10 seconds -->
+        <maxReconnectAttempts>10</maxReconnectAttempts> <!-- retry 10 times -->
+
+        <!-- Optional: Set SSL configuration if you're using HTTPS -->
+        <sslEnabled>true</sslEnabled>
+        <ssl>
+            <keyStore>
+                <location>
+                    keystore/LogstashCertKS.jks
+                </location>
+                <password>
+                    Info1234
+                </password>
+            </keyStore>
+            <trustStore>
+                <location>
+                    keystore/LogstashTruststore.jks
+                </location>
+                <password>
+                    Info1234
+                </password>
+            </trustStore>
+        </ssl>
+
+        <!-- Use Logstash encoder to format logs in JSON -->
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <tags>["prvi", "drugi"]</tags>
+                <logLevel />
+                <message />
+                <loggerName />
+                <threadName />
+                <mdc />
+                <stackTrace />
+                <contextName />
+                <callerData />
+                <mdc>
+                    <field name="instalacije" />
+                    <field name="integracije" />
+                </mdc>
+            </providers>
+        </encoder>
+    </appender>
+
+    <root name="hr.java.spring.foodstore" level="INFO">
+        <appender-ref ref="LOGSTASH" />
+    </root>
+
+    <logger name="hr.java.spring.foodstore" level="WARN">
+        <appender-ref ref="LOGSTASH" />
+    </logger>
+
+</configuration>
